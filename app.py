@@ -5,6 +5,13 @@ from datetime import datetime
 import random
 import string
 import logging
+import json
+import redis
+
+
+## redis connection
+redis_db1 = redis.Redis(host='127.0.0.1', port=6379, db=0,decode_responses=True)
+
 
 # Replace the values in the connection string with your own
 # Make sure to specify the correct dialect and driver for your database
@@ -18,7 +25,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 
-
+############## functions
 def generate_keyword():
     while True:
         # Generate random string of length between 3 and 8 characters
@@ -27,6 +34,22 @@ def generate_keyword():
         # Check if keyword already exists in database
         if Url.query.filter_by(keyword=keyword).first() is None:
             return keyword
+
+def set_redis_cache(doc_name,json_doc,ttl):
+    json_doc = json.dumps(json_doc)
+
+    redis_db1.set(doc_name, json_doc, ex=ttl)
+    logging.info(f'cache set for {doc_name}')
+
+
+
+def search_redis_cache(doc_name):
+    retrieved_doc_str = redis_db1.get(doc_name)
+    if retrieved_doc_str is None:
+        logging.info(f'cache miss for {doc_name}')
+        return("miss")
+    retrieved_doc = json.loads(retrieved_doc_str)
+    return(retrieved_doc)
 
 
 # Define a simple database model
@@ -110,6 +133,13 @@ def get_urls():
 
 @app.route('/url/<string:keyword>', methods=['GET'])
 def get_url(keyword):
+    # Attempt retrieval from redis
+    search_redis = search_redis_cache(f'/url/{keyword}')
+    
+    if search_redis != 'miss':
+        return jsonify(search_redis)
+
+
     # Retrieve url from database
     url = Url.query.filter_by(keyword=keyword).first()
 
@@ -119,13 +149,16 @@ def get_url(keyword):
             'keyword': url.keyword,
             'long_url': url.long_url,
             'title': url.title,
-            'timestamp': url.timestamp,
+            # f-string is used to desirialize datetime stamp
+            'timestamp': f"{url.timestamp}",
             'ip': url.ip,
             'count': url.count,
-            'active': url.active
+            #capitalized to return true/false as True/False. Needed to successfully post json document in redis cache
+            'active': str(url.active).capitalize() 
+            
         }
 
-        # Return response
+        set_redis_cache(f"/url/{keyword}",data,25)
         return jsonify(data)
     else:
         # Return error message
@@ -135,6 +168,13 @@ def get_url(keyword):
 
 @app.route('/r/<string:keyword>', methods=['GET'])
 def redirect_url(keyword):
+    # Query redis for a cached URL with the specified keyword
+    search_redis = search_redis_cache(f'/r/{keyword}')
+    print(search_redis)
+    if search_redis != 'miss':
+        return redirect(search_redis)
+    
+    
     # Query the database for a URL with the specified keyword
     url = Url.query.filter_by(keyword=keyword).first()
 
@@ -148,7 +188,8 @@ def redirect_url(keyword):
         log = Logs(keyword=keyword, referrer=request.referrer, user_agent=request.user_agent.string, ip=request.remote_addr)
         db.session.add(log)
         db.session.commit()
-
+        
+        set_redis_cache(f"/r/{keyword}",url.long_url,25)
         return redirect(url.long_url)
 
     # If no URL with the specified keyword exists, return a 404 error
