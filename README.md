@@ -25,19 +25,31 @@ This is pyshort, a python based headless link shortener.
 
 - db migrations
 
-
+- redis caching on 
+- - /url 
+- - /r
   
 ## Future features
-  
-- redis caching
 
-- usage logs
+- add new route for url edits
+
+- implement cache invalidation after user changes
+
+- implement rabbit-mq for async logging collection
+- - investigate rabbit failover (possibly with replicaset behind a service)
+
+- expose usage logs
+
+- implement periodic log cleanup (with custom thresholds?)
 
 - origin country implementation using maxmind open db
 
+- add unit tests
+
+
+
 
 # Notes
-
 
 
 ## Perform db migrations
@@ -48,7 +60,7 @@ This is pyshort, a python based headless link shortener.
 
 - flask db upgrade
 
-  
+
   
 
 # example calls
