@@ -9,7 +9,7 @@ This is pyshort, a python based headless link shortener.
   
   
 
-## Desired deliverables
+## Current features
 
   
 
@@ -25,18 +25,20 @@ This is pyshort, a python based headless link shortener.
 
 - db migrations
 
+
+  
+## Future features
+  
 - redis caching
 
 - usage logs
 
-  
-  
-  
-  
+- origin country implementation using maxmind open db
+
 
 # Notes
 
-  
+
 
 ## Perform db migrations
 
