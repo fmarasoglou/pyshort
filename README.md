@@ -1,7 +1,4 @@
-
-# Welcome to StackEdit!
-
-  
+#Pyshort
 
 This is pyshort, a python based headless link shortener.
 
