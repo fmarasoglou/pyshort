@@ -53,7 +53,7 @@ This is pyshort, a python based headless link shortener.
 
 POST /create_url
 
-    curl -X POST -H "Content-Type: application/json" -d '{"long_url":"**https://dnshunt.me**", "title":"**dnshunt**"}' http://localhost:5000/create_url
+    curl -X POST -H "Content-Type: application/json" -d '{"long_url":"https://dnshunt.me", "title":"dnshunt"}' http://localhost:5000/create_url
 
 
 GET /get_urls
@@ -62,8 +62,8 @@ GET /get_urls
 
 GET /url/$keyword
 
-    curl -X GET http://localhost:5000/url/**dnshunt**
+    curl -X GET http://localhost:5000/url/dnshunt
 
 GET /r/$keyword
 
-    curl -X GET http://localhost:5000/r/**dnshunt**
+    curl -X GET http://localhost:5000/r/dnshunt
