@@ -41,7 +41,11 @@ This is pyshort, a python based headless link shortener.
 
 - origin country implementation using maxmind open db
 
+- add try/catch wherever possible
+
 - add unit tests
+
+
 
 
 
