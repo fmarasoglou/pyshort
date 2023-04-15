@@ -18,6 +18,8 @@ This is pyshort, a python based headless link shortener.
 
 - create url
 
+- edit url
+
 - follow redirect
 
 - db migrations
@@ -27,8 +29,6 @@ This is pyshort, a python based headless link shortener.
 - - /r
   
 ## Future features
-
-- add new route for url edits
 
 - implement cache invalidation after user changes
 
