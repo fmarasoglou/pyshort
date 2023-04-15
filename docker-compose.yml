@@ -1,11 +1,29 @@
 version: '3.8'
 services:
+  pyshort:
+    build: .
+    # image: pyshort:latest
+    restart: always
+    environment:
+      - redis_host=redis
+      # - redis_port =
+      # - postgres_username = 
+      # - postgres_password = 
+      - postgres_host=db
+      # - postgres_port = 
+      - postgres_db_name=postgres
+    links:
+      - "db:db"
+      - "redis:redis"
+    ports:
+      - '5000:5000'
   db:
     image: postgres:15.2-bullseye
     restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=pyshort
     ports:
       - '5432:5432'
   redis:
