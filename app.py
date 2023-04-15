@@ -198,6 +198,72 @@ def redirect_url(keyword):
         return jsonify({'message': 'Url not found'}), 404
 
 
+# Route to update existing urls
+@app.route('/update_url/<string:keyword>', methods=['PUT'])
+def update_url(keyword):
+    # Get data from request body
+    data = request.json
+    long_url = data.get('long_url')
+    title = data.get('title')
+    active = data.get('active')
+
+    
+    # Retrieve url from database
+    url = Url.query.filter_by(keyword=keyword).first()
+
+
+
+    if url:
+        # Update url properties
+        url.long_url = long_url or url.long_url
+        url.title = title or url.title
+        # url.active = active or url.active
+        
+        # if statement is entered only if "active" parameter is provided on data input
+        # this if statement is used to properly format the active status to smth sqlelchemy understands as boolean value
+        if active:
+            if active == "True":
+                url.active = True
+            elif active == "False":
+                url.active = False
+            else:
+                active = url.active
+                logging.warning(f"'Active' value provided for short url {keyword} should be True or False. Rest keywords will be ignored")
+    
+
+        
+
+
+
+        # Commit changes to database
+        db.session.commit()
+
+        # Create response data
+        data = {
+            'keyword': url.keyword,
+            'long_url': url.long_url,
+            'title': url.title,
+            # f-string is used to desirialize datetime stamp
+            'timestamp': f"{url.timestamp}",
+            'ip': url.ip,
+            'count': url.count,
+            #capitalized to return true/false as True/False. Needed to successfully post json document in redis cache
+            'active': str(url.active).capitalize() 
+            
+        }
+        
+        # Invalidate Redis cache
+        redis_db1.delete(f'/url/{keyword}')
+        redis_db1.delete(f'/r/{keyword}')
+        
+        return jsonify({'message': 'Url updated successfully', 'data': data})
+    else:
+        # Return error message
+        logging.warning('/update_url, Url not found')
+        return jsonify({'message': 'Url not found'}), 404
+
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',debug=True)
