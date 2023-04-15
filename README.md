@@ -86,4 +86,5 @@ GET /r/$keyword
     curl -X GET http://localhost:5000/r/dnshunt
 
 Edit existing Url
+GET /update_url/$keyword
     curl -X PUT  -H "Content-Type: application/json"  -d '{"long_url":"https://dnshunt.me/contact", "title":"dnshunt_contact"}' http://localhost:5000/update_url/$KEYWORD
