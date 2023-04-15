@@ -12,25 +12,17 @@ This is pyshort, a python based headless link shortener.
 
 - rest api
 
-- list all urls
-
-- list info for specific url
-
-- create url
-
-- edit url
-
-- follow redirect
+- calls to list / create / update / follow urls
 
 - db migrations
+
+- swagger api on /api/docs
 
 - redis caching on 
 - - /url 
 - - /r
   
 ## Future features
-
-- implement swagger 
 
 - expose usage logs
 
@@ -58,7 +50,9 @@ This is pyshort, a python based headless link shortener.
 
 - flask db upgrade
 
-
+## Extend swagget config
+- The yaml template is /static/openapi.yaml
+- https://editor.swagger.io/
   
 
 # example calls
