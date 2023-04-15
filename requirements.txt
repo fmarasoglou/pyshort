@@ -4,3 +4,4 @@ Flask_Migrate==4.0.4
 flask_sqlalchemy==3.0.3
 redis==4.5.4
 SQLAlchemy==2.0.9
+psycopg2-binary==2.9.6
