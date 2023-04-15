@@ -65,20 +65,25 @@ This is pyshort, a python based headless link shortener.
   
 
 # example calls
-
+Create new url
 POST /create_url
 
     curl -X POST -H "Content-Type: application/json" -d '{"long_url":"https://dnshunt.me", "title":"dnshunt"}' http://localhost:5000/create_url
 
-
+List all urls
 GET /get_urls
 
     curl -X GET http://localhost:5000/get_urls
 
+Get info about specific url
 GET /url/$keyword
 
     curl -X GET http://localhost:5000/url/dnshunt
 
+Follow url redirect
 GET /r/$keyword
 
     curl -X GET http://localhost:5000/r/dnshunt
+
+Edit existing Url
+    curl -X PUT  -H "Content-Type: application/json"  -d '{"long_url":"https://dnshunt.me/contact", "title":"dnshunt_contact"}' http://localhost:5000/update_url/$KEYWORD
