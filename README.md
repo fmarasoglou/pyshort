@@ -30,11 +30,6 @@ This is pyshort, a python based headless link shortener.
   
 ## Future features
 
-- implement cache invalidation after user changes
-
-- implement rabbit-mq for async logging collection
-- - investigate rabbit failover (possibly with replicaset behind a service)
-
 - expose usage logs
 
 - implement periodic log cleanup (with custom thresholds?)
