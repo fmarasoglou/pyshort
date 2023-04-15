@@ -8,7 +8,7 @@ This is pyshort, a python based headless link shortener.
 
 ## Current features
 
-  
+- ready to go docker image with docker-compose.yml included
 
 - rest api
 
