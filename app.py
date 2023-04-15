@@ -7,15 +7,24 @@ import string
 import logging
 import json
 import redis
+import os
 
+# Environments
+redis_host = os.getenv('redis_host', '127.0.0.1')
+redis_port = os.getenv('redis_port', 6379)
+postgres_username = os.getenv('postgres_username', 'postgres')
+postgres_password = os.getenv('postgres_password', 'postgres')
+postgres_host = os.getenv('postgres_host', '127.0.0.1')
+postgres_port = os.getenv('postgres_port', '5432')
+postgres_db_name = os.getenv('postgres_db_name', 'pyshort')
 
 ## redis connection
-redis_db1 = redis.Redis(host='127.0.0.1', port=6379, db=0,decode_responses=True)
+redis_db1 = redis.Redis(host=redis_host, port=redis_port, db=0,decode_responses=True)
 
 
 # Replace the values in the connection string with your own
 # Make sure to specify the correct dialect and driver for your database
-connection_string = "postgresql://postgres:postgres@127.0.0.1:5432/pyshort"
+connection_string = f"postgresql://{postgres_username}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db_name}"
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = connection_string
