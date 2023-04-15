@@ -30,6 +30,8 @@ This is pyshort, a python based headless link shortener.
   
 ## Future features
 
+- implement swagger 
+
 - expose usage logs
 
 - implement periodic log cleanup (with custom thresholds?)
