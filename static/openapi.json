@@ -1,0 +1,142 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Pyshort API",
+    "description": "A doc for all Pyshort calls"
+  },
+  "paths": {
+    "/get_urls": {
+      "get": {
+        "tags": [
+          "/get_urls"
+        ],
+        "description": "Returns all urls on the db",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "hola"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/url/{keyword}": {
+      "get": {
+        "tags": [
+          "/get_urls"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "keyword",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "String of the short url to get"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create_url": {
+      "post": {
+        "summary": "Create a new short url",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "long_url": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "long_url",
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/update_url/{keyword}": {
+      "put": {
+        "tags": [
+          "/update_url"
+        ],
+        "summary": "Update an existing short url",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "keyword",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "String of the short url to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "long_url": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "active": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "long_url",
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    }
+  }
+}
