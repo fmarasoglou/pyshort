@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, redirect, abort
+from flask import Flask, request, jsonify, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
@@ -92,6 +92,17 @@ with app.app_context():
     db.create_all()
 
 
+
+
+# Swagget docs
+@app.route('/api/docs')
+def get_docs():
+    return render_template('swaggerui.html')
+
+
+
+
+
 # Route to create new urls
 @app.route('/create_url', methods=['POST'])
 def create_url():
@@ -117,7 +128,7 @@ def create_url():
         'ip': url.ip,
         'count': url.count,
         'active': url.active
-    }})
+    }}), 201
 
 
 # Route to retrieve all urls
@@ -265,7 +276,7 @@ def update_url(keyword):
         redis_db1.delete(f'/url/{keyword}')
         redis_db1.delete(f'/r/{keyword}')
         
-        return jsonify({'message': 'Url updated successfully', 'data': data})
+        return jsonify({'message': 'Url updated successfully', 'data': data}), 201
     else:
         # Return error message
         logging.warning('/update_url, Url not found')
