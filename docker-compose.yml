@@ -1,8 +1,8 @@
 version: '3.8'
 services:
   pyshort:
-    build: .
-    # image: pyshort:latest
+    # build: .
+    image: fmarasoglou/pyshort:latest
     restart: always
     environment:
       - redis_host=redis
