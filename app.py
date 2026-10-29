@@ -8,6 +8,8 @@ import logging
 import json
 import redis
 import os
+import hmac
+from urllib.parse import urlparse
 
 # Environments
 redis_host = os.getenv('redis_host', '127.0.0.1')
@@ -61,6 +63,19 @@ def search_redis_cache(doc_name):
     return(retrieved_doc)
 
 
+def require_service_token():
+    # When no token is configured the management endpoints stay open (standalone use).
+    token = os.getenv('PYSHORT_SERVICE_TOKEN')
+    if token and not hmac.compare_digest(request.headers.get('X-Service-Token', ''), token):
+        return jsonify({'error': 'unauthorized'}), 401
+    return None
+
+
+def is_valid_long_url(long_url):
+    parsed = urlparse(long_url or '')
+    return parsed.scheme in ('http', 'https') and bool(parsed.netloc)
+
+
 # Define a simple database model
 class Url(db.Model):
     keyword = db.Column(db.String(8), primary_key=True) # the random short url string
@@ -106,11 +121,18 @@ def get_docs():
 # Route to create new urls
 @app.route('/create_url', methods=['POST'])
 def create_url():
+    denied = require_service_token()
+    if denied:
+        return denied
+
     # Get data from request body
     data = request.json
     long_url = data.get('long_url')
     title = data.get('title')
     ip = request.remote_addr
+
+    if not is_valid_long_url(long_url):
+        return jsonify({'error': 'invalid url'}), 400
 
     # Create new url
     url = Url(long_url=long_url, title=title, ip=ip, keyword=generate_keyword())
@@ -134,6 +156,10 @@ def create_url():
 # Route to retrieve all urls
 @app.route('/get_urls', methods=['GET'])
 def get_urls():
+    denied = require_service_token()
+    if denied:
+        return denied
+
     # Get all urls from database
     urls = Url.query.all()
 
@@ -188,44 +214,47 @@ def get_url(keyword):
 
 @app.route('/r/<string:keyword>', methods=['GET'])
 def redirect_url(keyword):
-    # Query redis for a cached URL with the specified keyword
-    search_redis = search_redis_cache(f'/r/{keyword}')
-    print(search_redis)
-    if search_redis != 'miss':
-        return redirect(search_redis)
-    
-    
-    # Query the database for a URL with the specified keyword
+    # Active check must precede the cache lookup; the cache stores only active links.
     url = Url.query.filter_by(keyword=keyword).first()
 
-    # If a URL with the specified keyword exists, redirect to the long URL
-    if url is not None:
-        # Increment the URL's click count
-        url.count += 1
-        db.session.commit()
-
-        # Log the click
-        log = Logs(keyword=keyword, referrer=request.referrer, user_agent=request.user_agent.string, ip=request.remote_addr)
-        db.session.add(log)
-        db.session.commit()
-        
-        set_redis_cache(f"/r/{keyword}",url.long_url,25)
-        return redirect(url.long_url)
-
-    # If no URL with the specified keyword exists, return a 404 error
-    else:
-        logging.warning('/r, Url not found')
+    # If no URL exists, or the URL is deactivated, return a 404 error
+    if url is None or not url.active:
+        logging.warning('/r, Url not found or inactive')
         return jsonify({'message': 'Url not found'}), 404
+
+    # Query redis for a cached URL with the specified keyword
+    search_redis = search_redis_cache(f'/r/{keyword}')
+    if search_redis != 'miss':
+        return redirect(search_redis)
+
+    # Increment the URL's click count
+    url.count += 1
+    db.session.commit()
+
+    # Log the click
+    log = Logs(keyword=keyword, referrer=request.referrer, user_agent=request.user_agent.string, ip=request.remote_addr)
+    db.session.add(log)
+    db.session.commit()
+
+    set_redis_cache(f"/r/{keyword}",url.long_url,25)
+    return redirect(url.long_url)
 
 
 # Route to update existing urls
 @app.route('/update_url/<string:keyword>', methods=['PUT'])
 def update_url(keyword):
+    denied = require_service_token()
+    if denied:
+        return denied
+
     # Get data from request body
     data = request.json
     long_url = data.get('long_url')
     title = data.get('title')
     active = data.get('active')
+
+    if long_url and not is_valid_long_url(long_url):
+        return jsonify({'error': 'invalid url'}), 400
 
     
     # Retrieve url from database

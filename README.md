@@ -21,6 +21,33 @@ This is pyshort, a python based headless link shortener.
 - redis caching on 
 - - /url 
 - - /r
+
+- optional service-token auth on management endpoints (see below)
+
+- deactivated urls (`active=False`) return 404 from `/r/` instead of redirecting
+
+## Service token auth
+
+Set the `PYSHORT_SERVICE_TOKEN` environment variable to require an
+`X-Service-Token: <value>` header on the management endpoints
+(`POST /create_url`, `PUT /update_url/<keyword>`, `GET /get_urls`).
+Requests with a missing or wrong token get `401 {"error": "unauthorized"}`.
+When the variable is unset, the endpoints stay open (standalone use is
+unchanged). `/r/` and `/url/` never require the token.
+
+## URL validation
+
+`POST /create_url` and `PUT /update_url/<keyword>` validate `long_url`:
+it must parse with a scheme of `http`/`https` and a non-empty netloc,
+otherwise `400 {"error": "invalid url"}`. On update, validation only
+applies when `long_url` is included in the payload.
+
+## Deactivated links
+
+`PUT /update_url/<keyword>` with `{"active": "False"}` deactivates a link.
+`GET /r/<keyword>` returns `404` for inactive links (checked against the
+database before the Redis cache, so a cached link stops redirecting as soon
+as it is deactivated).
   
 ## Future features
 
