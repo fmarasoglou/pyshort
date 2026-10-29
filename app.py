@@ -72,7 +72,9 @@ def require_service_token():
 
 
 def is_valid_long_url(long_url):
-    parsed = urlparse(long_url or '')
+    if not isinstance(long_url, str):
+        return False
+    parsed = urlparse(long_url)
     return parsed.scheme in ('http', 'https') and bool(parsed.netloc)
 
 
