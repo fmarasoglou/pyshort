@@ -5,3 +5,5 @@ flask_sqlalchemy==3.0.3
 redis==4.5.4
 SQLAlchemy==2.0.9
 psycopg2-binary==2.9.6
+# Flask 2.2.3 imports werkzeug.urls.url_quote, removed in Werkzeug 3.0.
+Werkzeug>=2.2,<3
