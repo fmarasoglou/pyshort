@@ -22,18 +22,19 @@ This is pyshort, a python based headless link shortener.
 - - /url 
 - - /r
 
-- optional service-token auth on management endpoints (see below)
+- required service-token auth on management endpoints (see below)
 
 - deactivated urls (`active=False`) return 404 from `/r/` instead of redirecting
 
 ## Service token auth
 
-Set the `PYSHORT_SERVICE_TOKEN` environment variable to require an
-`X-Service-Token: <value>` header on the management endpoints
-(`POST /create_url`, `PUT /update_url/<keyword>`, `GET /get_urls`).
-Requests with a missing or wrong token get `401 {"error": "unauthorized"}`.
-When the variable is unset, the endpoints stay open (standalone use is
-unchanged). `/r/` and `/url/` never require the token.
+Set the `PYSHORT_SERVICE_TOKEN` environment variable; every management
+endpoint requires an `X-Service-Token: <value>` header (`POST /create_url`,
+`PUT /update_url/<keyword>`, `GET /get_urls`, `GET /url/<keyword>`,
+`GET /api/docs`, `GET /healthz`). Requests with a missing or wrong token get
+`401 {"error": "unauthorized"}`. The check fails closed: with the variable
+unset or empty every management request is rejected and the service logs an
+error at startup. Only `GET /r/<keyword>` is public.
 
 ## URL validation
 

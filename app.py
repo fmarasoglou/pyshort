@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
-import random
+import secrets
 import string
 import logging
 import json
@@ -26,7 +26,8 @@ redis_db1 = redis.Redis(host=redis_host, port=redis_port, db=0,decode_responses=
 
 # Replace the values in the connection string with your own
 # Make sure to specify the correct dialect and driver for your database
-connection_string = f"postgresql://{postgres_username}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db_name}"
+# PYSHORT_DATABASE_URL overrides the DSN (the test suite uses a SQLite file).
+connection_string = os.getenv('PYSHORT_DATABASE_URL') or f"postgresql://{postgres_username}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db_name}"
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = connection_string
@@ -35,12 +36,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+# Fail closed, but stay up: an unset token locks management routes instead of
+# opening them, and this line is how the misconfiguration is diagnosed.
+if not os.getenv('PYSHORT_SERVICE_TOKEN'):
+    logging.error('PYSHORT_SERVICE_TOKEN is not set: management endpoints are locked (401).')
+
 
 ############## functions
 def generate_keyword():
     while True:
-        # Generate random string of length between 3 and 8 characters
-        keyword = ''.join(random.choice(string.ascii_lowercase) for i in range(random.randint(3, 8)))
+        # 6-8 characters from a CSPRNG; the keyword is the only thing protecting a redirect.
+        keyword = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(6 + secrets.randbelow(3)))
 
         # Check if keyword already exists in database
         if Url.query.filter_by(keyword=keyword).first() is None:
@@ -49,13 +55,21 @@ def generate_keyword():
 def set_redis_cache(doc_name,json_doc,ttl):
     json_doc = json.dumps(json_doc)
 
-    redis_db1.set(doc_name, json_doc, ex=ttl)
+    try:
+        redis_db1.set(doc_name, json_doc, ex=ttl)
+    except Exception:
+        # The cache is an optimisation; a Redis outage must not break redirects.
+        logging.exception(f'cache set failed for {doc_name}')
     logging.info(f'cache set for {doc_name}')
 
 
 
 def search_redis_cache(doc_name):
-    retrieved_doc_str = redis_db1.get(doc_name)
+    try:
+        retrieved_doc_str = redis_db1.get(doc_name)
+    except Exception:
+        logging.exception(f'cache get failed for {doc_name}')
+        return("miss")
     if retrieved_doc_str is None:
         logging.info(f'cache miss for {doc_name}')
         return("miss")
@@ -64,9 +78,9 @@ def search_redis_cache(doc_name):
 
 
 def require_service_token():
-    # When no token is configured the management endpoints stay open (standalone use).
+    # Fail closed: no configured token means nobody is authorized, never everybody.
     token = os.getenv('PYSHORT_SERVICE_TOKEN')
-    if token and not hmac.compare_digest(request.headers.get('X-Service-Token', ''), token):
+    if not token or not hmac.compare_digest(request.headers.get('X-Service-Token', ''), token):
         return jsonify({'error': 'unauthorized'}), 401
     return None
 
@@ -114,7 +128,21 @@ with app.app_context():
 # Swagget docs
 @app.route('/api/docs')
 def get_docs():
+    denied = require_service_token()
+    if denied:
+        return denied
     return render_template('swaggerui.html')
+
+
+
+
+# Readiness probe: 204 only for a caller holding the service token.
+@app.route('/healthz')
+def healthz():
+    denied = require_service_token()
+    if denied:
+        return denied
+    return '', 204
 
 
 
@@ -181,6 +209,10 @@ def get_urls():
 
 @app.route('/url/<string:keyword>', methods=['GET'])
 def get_url(keyword):
+    denied = require_service_token()
+    if denied:
+        return denied
+
     # Attempt retrieval from redis
     search_redis = search_redis_cache(f'/url/{keyword}')
     
@@ -229,14 +261,21 @@ def redirect_url(keyword):
     if search_redis != 'miss':
         return redirect(search_redis)
 
-    # Increment the URL's click count
-    url.count += 1
-    db.session.commit()
-
-    # Log the click
-    log = Logs(keyword=keyword, referrer=request.referrer, user_agent=request.user_agent.string, ip=request.remote_addr)
-    db.session.add(log)
-    db.session.commit()
+    # Increment the URL's click count and log the click. Both are best-effort:
+    # a logging failure must never cost the visitor the redirect.
+    try:
+        url.count += 1
+        log = Logs(
+            keyword=keyword,
+            referrer=(request.referrer or '')[:200],
+            user_agent=(request.user_agent.string or '')[:255],
+            ip=request.remote_addr,
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        logging.exception('/r, failed to record click')
+        db.session.rollback()
 
     set_redis_cache(f"/r/{keyword}",url.long_url,25)
     return redirect(url.long_url)
