@@ -60,6 +60,7 @@ def set_redis_cache(doc_name,json_doc,ttl):
     except Exception:
         # The cache is an optimisation; a Redis outage must not break redirects.
         logging.exception(f'cache set failed for {doc_name}')
+        return
     logging.info(f'cache set for {doc_name}')
 
 

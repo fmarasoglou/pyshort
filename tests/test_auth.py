@@ -168,3 +168,18 @@ def test_redirect_survives_logging_failure(client, monkeypatch):
     assert response.headers["Location"] == "https://example.com/a"
     # The link was cached despite the failed write.
     assert app_module.redis_db1.get(f"/r/{keyword}") == '"https://example.com/a"'
+
+
+def test_cache_write_failure_is_logged_not_claimed(client, monkeypatch, caplog):
+    keyword = create(client)
+
+    class Boom:
+        def set(self, *args, **kwargs):
+            raise RuntimeError("redis down")
+
+    monkeypatch.setattr(app_module, "redis_db1", Boom())
+    with caplog.at_level("INFO"):
+        response = client.get(f"/r/{keyword}")
+    assert response.status_code == 302
+    assert "cache set failed" in caplog.text
+    assert f"cache set for /r/{keyword}" not in caplog.text
