@@ -10,6 +10,8 @@ import redis
 import os
 import hmac
 from urllib.parse import urlparse
+import time
+from sqlalchemy.exc import IntegrityError
 
 # Environments
 redis_host = os.getenv('redis_host', '127.0.0.1')
@@ -120,8 +122,19 @@ class Logs(db.Model):
         return '<Logs %r>' % self.name
 
 # Create any tables that do not exist
+# gunicorn workers run this at import time; on a fresh DB two workers can
+# race the CREATE statements and the loser dies with a duplicate-object
+# IntegrityError (worker boot failure) — retry until the winner's schema
+# is visible.
 with app.app_context():
-    db.create_all()
+    for _attempt in range(6):
+        try:
+            db.create_all()
+            break
+        except IntegrityError:
+            if _attempt == 5:
+                raise
+            time.sleep(0.5)
 
 
 
